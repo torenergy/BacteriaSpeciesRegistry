@@ -1,0 +1,162 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract BacteriaSpeciesRegistry is Ownable {
+    // Struct for Bacteria Species
+    struct Bacteria {
+        uint256 id;
+        string scientificName; // e.g., "Escherichia coli"
+        string classification; // e.g., "Enterobacteriaceae"
+        string dataHash; // IPFS hash for detailed data (e.g., JSON with traits, images)
+        address recordedBy; // Contributor who added the entry
+        uint256 timestamp; // Unix timestamp
+        bool isActive;
+    }
+
+    // Struct for Authorized Contributor
+    struct Contributor {
+        address contributorAddress;
+        string name; // e.g., "CDC", "University Lab"
+        bool isAuthorized;
+    }
+
+    // Counters
+    uint256 private nextBacteriaId = 1;
+
+    // Mappings
+    mapping(uint256 => Bacteria) public bacteriaSpecies;
+    mapping(address => Contributor) public contributors;
+    mapping(address => uint256[]) public contributorBacteria; // Contributor to list of bacteria IDs
+
+    // Events
+    event ContributorAuthorized(address indexed contributor, string name);
+    event ContributorRevoked(address indexed contributor);
+    event BacteriaRecorded(
+        uint256 indexed bacteriaId,
+        string scientificName,
+        string classification,
+        string dataHash,
+        address recordedBy
+    );
+    event BacteriaUpdated(uint256 indexed bacteriaId, string dataHash);
+    event BacteriaDeactivated(uint256 indexed bacteriaId);
+
+    constructor() Ownable(msg.sender) {}
+
+    // Modifier to restrict access to authorized contributors
+    modifier onlyAuthorizedContributor() {
+        require(contributors[msg.sender].isAuthorized, "Not authorized contributor");
+        _;
+    }
+
+    // Authorize a contributor (e.g., microbiologist, research institute)
+    function authorizeContributor(address contributor, string memory name) external onlyOwner {
+        require(contributor != address(0), "Invalid address");
+        require(bytes(name).length > 0, "Name cannot be empty");
+        require(!contributors[contributor].isAuthorized, "Contributor already authorized");
+
+        contributors[contributor] = Contributor(contributor, name, true);
+        emit ContributorAuthorized(contributor, name);
+    }
+
+    // Revoke a contributor's authorization
+    function revokeContributor(address contributor) external onlyOwner {
+        require(contributors[contributor].isAuthorized, "Contributor not authorized");
+        contributors[contributor].isAuthorized = false;
+        emit ContributorRevoked(contributor);
+    }
+
+    // Record a new bacteria species
+    function recordBacteria(
+        string memory scientificName,
+        string memory classification,
+        string memory dataHash
+    ) external onlyAuthorizedContributor returns (uint256) {
+        require(bytes(scientificName).length > 0, "Scientific name cannot be empty");
+        require(bytes(classification).length > 0, "Classification cannot be empty");
+        require(bytes(dataHash).length > 0, "Data hash cannot be empty");
+
+        uint256 bacteriaId = nextBacteriaId++;
+        bacteriaSpecies[bacteriaId] = Bacteria(
+            bacteriaId,
+            scientificName,
+            classification,
+            dataHash,
+            msg.sender,
+            block.timestamp,
+            true
+        );
+        contributorBacteria[msg.sender].push(bacteriaId);
+
+        emit BacteriaRecorded(bacteriaId, scientificName, classification, dataHash, msg.sender);
+        return bacteriaId;
+    }
+
+    // Update a bacteria's data hash (e.g., for updated research)
+    function updateBacteria(uint256 bacteriaId, string memory newDataHash) external onlyAuthorizedContributor {
+        require(bacteriaSpecies[bacteriaId].isActive, "Bacteria not active");
+        require(bacteriaSpecies[bacteriaId].recordedBy == msg.sender, "Not recorded by this contributor");
+        require(bytes(newDataHash).length > 0, "Data hash cannot be empty");
+
+        bacteriaSpecies[bacteriaId].dataHash = newDataHash;
+        bacteriaSpecies[bacteriaId].timestamp = block.timestamp;
+        emit BacteriaUpdated(bacteriaId, newDataHash);
+    }
+
+    // Deactivate a bacteria entry
+    function deactivateBacteria(uint256 bacteriaId) external {
+        require(bacteriaSpecies[bacteriaId].isActive, "Bacteria not active");
+        require(
+            bacteriaSpecies[bacteriaId].recordedBy == msg.sender || owner() == msg.sender,
+            "Not authorized"
+        );
+        bacteriaSpecies[bacteriaId].isActive = false;
+        emit BacteriaDeactivated(bacteriaId);
+    }
+
+    // Get bacteria details
+    function getBacteria(uint256 bacteriaId)
+        external
+        view
+        returns (
+            string memory scientificName,
+            string memory classification,
+            string memory dataHash,
+            address recordedBy,
+            uint256 timestamp,
+            bool isActive
+        )
+    {
+        require(bacteriaSpecies[bacteriaId].id != 0, "Bacteria does not exist");
+        Bacteria memory bacteria = bacteriaSpecies[bacteriaId];
+        return (
+            bacteria.scientificName,
+            bacteria.classification,
+            bacteria.dataHash,
+            bacteria.recordedBy,
+            bacteria.timestamp,
+            bacteria.isActive
+        );
+    }
+
+    // Get bacteria recorded by a contributor
+    function getContributorBacteria(address contributor)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return contributorBacteria[contributor];
+    }
+
+    // Get contributor details
+    function getContributor(address contributor)
+        external
+        view
+        returns (string memory name, bool isAuthorized)
+    {
+        Contributor memory c = contributors[contributor];
+        return (c.name, c.isAuthorized);
+    }
+}
