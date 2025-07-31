@@ -1,0 +1,19 @@
+ // Get bacteria recorded by a contributor
+    function getContributorBacteria(address contributor)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return contributorBacteria[contributor];
+    }
+
+    // Get contributor details
+    function getContributor(address contributor)
+        external
+        view
+        returns (string memory name, bool isAuthorized)
+    {
+        Contributor memory c = contributors[contributor];
+        return (c.name, c.isAuthorized);
+    }
+}
