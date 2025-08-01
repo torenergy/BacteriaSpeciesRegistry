@@ -113,20 +113,7 @@ class BacterialSpeciesRegistryApp:
         tree.column("Habitat", width=150)
         tree.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Fetch and display data
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM bacteria")
-        for row in cursor.fetchall():
-            # Decrypt species name
-            try:
-                decrypted_species = self.cipher.decrypt(row[1].encode()).decode()
-            except Exception:
-                decrypted_species = "Decryption Error"
-            tree.insert("", tk.END, values=(row[0], decrypted_species, row[2], row[3], row[4]))
-
-    def __del__(self):
-        # Close database connection when the app closes
-        self.conn.close()
+       
 
 if __name__ == "__main__":
     root = tk.Tk()
