@@ -128,15 +128,7 @@ contract BacteriaSpeciesRegistry is Ownable {
             uint256 timestamp,
             bool isActive
         )
-    {
-        require(bacteriaSpecies[bacteriaId].id != 0, "Bacteria does not exist");
-        Bacteria memory bacteria = bacteriaSpecies[bacteriaId];
-        return (
-            bacteria.scientificName,
-            bacteria.classification,
-            bacteria.dataHash,
-            bacteria.recordedBy,
-            bacteria.timestamp,
+
             bacteria.isActive
         );
     }
