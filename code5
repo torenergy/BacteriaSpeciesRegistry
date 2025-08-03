@@ -1,0 +1,16 @@
+// Get bacteria details
+    function getBacteria(uint256 bacteriaId)
+        external
+        view
+        returns (
+            string memory scientificName,
+            string memory classification,
+            string memory dataHash,
+            address recordedBy,
+            uint256 timestamp,
+            bool isActive
+        )
+
+            bacteria.isActive
+        );
+    }
