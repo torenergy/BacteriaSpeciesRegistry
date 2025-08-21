@@ -1,0 +1,9 @@
+ // Deactivate a bacteria entry
+    function deactivateBacteria(uint256 bacteriaId) external {
+        require(bacteriaSpecies[bacteriaId].isActive, "Bacteria not active");
+        require(
+            bacteriaSpecies[bacteriaId].recordedBy == msg.sender || owner() == msg.sender,
+            "Not authorized"
+        );
+        bacteriaSpecies[bacteriaId].isActive = false;
+        emit BacteriaDeactivated(bacteriaId);
